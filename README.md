@@ -1,14 +1,24 @@
 # Solaris AI
 
-## Getting Started
+**Solaris AI** is a hybrid solar energy forecasting and analytics system that combines Deep Learning and Generative AI to deliver accurate, explainable, and multilingual insights about solar power output. It integrates time-series forecasting models like **ANN** and **LSTM** with a **Retrieval-Augmented Generation (RAG)** pipeline powered by OpenAI models via AWS Bedrock.
 
-### Configure AWS
+Users can interact with Solaris AI through a natural language interface to retrieve real-time insights about solar generation, backed by both raw data and AI predictions. The application is containerized using Docker and deployed on AWS (Lambda, DynamoDB) for scalability and cost-efficiency.
 
-You need to have an AWS account, and AWS CLI set up on your machine. You'll also need to have Bedrock enabled on AWS (and granted model access to Claude or whatever you want to use).
+> 🧠 Solaris AI is designed for researchers, policymakers, grid operators, and businesses aiming to make data-driven, transparent, and scalable decisions in the clean energy domain.
 
-### Update .env File with AWS Credentials
+## 📦 Getting Started
 
-Create a file named `.env` in `image/`. Do NOT commit the file to `.git`. The file should have content like this:
+### 1. Configure AWS
+
+You’ll need:
+- An AWS account.
+- AWS CLI set up and authenticated.
+- Bedrock enabled (with access granted to models like Claude, DeepSeek, etc.).
+- A DynamoDB table created.
+
+### 2. Set Up `.env` File
+
+Create a `.env` file in the `image/` directory **(Do NOT commit this file)**:
 
 ```
 AWS_ACCESS_KEY_ID=XXXXX
@@ -19,76 +29,64 @@ TABLE_NAME=YourTableName
 
 This will be used by Docker for when we want to test the image locally. The AWS keys are just your normal AWS credentials and region you want to run this in (even when running locally you will still need access to Bedrock LLM and to the DynamoDB table to write/read the data).
 
-You'll also need a TABLE_NAME for the DynamoDB table for this to work (so you'll have to create that first).
-
-### Installing Requirements
+## 🧪 Installing Dependencies
 
 ```sh
 pip install -r image/requirements.txt
 ```
 
-### Building the Vector DB
-
-Put all the source files (dataset + ML models) you want into `image/src/data/source/`. Then go `image` and run:
+## 🧠 Build the Vector DB
+Place your dataset and ML models into `image/src/data/source/`.
+Then go `image` and run:
 
 ```sh
-# Use "--reset" if you want to overwrite an existing DB.
-python populate_database.py --reset
+cd image
+python populate_database.py --reset  # Add --reset to overwrite existing DB
 ```
 
-### Running the App
+## 💬 Query the App (RAG System)
+# Execute from image/src directory
 
 ```sh
-# Execute from image/src directory
 cd image/src
 python -m rag_app.query_rag "What was the total solar power output on 2019-10-01?"
 ```
 
-
-### Starting FastAPI Server
-
-```sh
+## 🚀 Starting FastAPI Server (Local)
 # From image/src directory.
+```sh
+cd image/src
 python app_api_handler.py
 ```
 
 Then go to `http://127.0.0.1:8000/docs` to try it out.
 
-## Using Docker Image
+## 🐳 Docker Usage
 
-### Build and Test the Image Locally
-
-These commands can be run from `image/` directory to build, test, and serve the app locally.
-
+### Build Docker Image
 ```sh
+cd image
 docker build --platform linux/amd64 -t aws_rag_app .
+```
+
+### Test the Image Locally
+```sh
+docker run --rm -it --entrypoint python --env-file .env aws_rag_app app_work_handler.py
 ```
 
 This will build the image (using linux amd64 as the platform — we need this for `pysqlite3` for Chroma).
 
-```sh
+### Run the App Locally as a Server
 # Run the container using command `python app_work_handler.main`
-docker run --rm -it --entrypoint python --env-file .env aws_rag_app app_work_handler.py
-
-
-```
-
-This will test the image, seeing if it can run the RAG/AI component with a hard-coded question (see ` app_work_handler.py`). But since it uses Bedrock as the embeddings and LLM platform, you will need an AWS account and have all the environment variables for your access set (`AWS_ACCESS_KEY_ID`, etc).
-
-You will also need to have Bedrock's models enabled and granted for the region you are running this in.
-
-## Running Locally as a Server
-
-Assuming you've build the image from the previous step.
 
 ```sh
-
-
 docker run --rm -p 8000:8000 --entrypoint python --env-file .env aws_rag_app app_api_handler.py
 
+
+
 ```
 
-## Testing Locally
+## 🧪 Test API Locally (with curl)
 
 After running the Docker container on localhost, you can access an interactive API page locally to test it: `http://0.0.0.0:8000/docs`.
 
@@ -102,50 +100,51 @@ curl -X 'POST' \
 }'
 ```
 
-## Deploy to AWS
+## ☁️ Deploy to AWS
 
-I have put all the AWS CDK files into `rag-cdk-infra/`. Go into the folder and install the Node dependencies.
+Deployment is inspired by Pixegami’s tutorial on deploying RAG apps to AWS. Highly recommended if you're new to AWS CDK or deploying containerised FastAPI apps to Lambda.
 
+1. Install Dependencies
 ```sh
+cd rag-cdk-infra/
 npm install
 ```
 
-Then run this command to deploy it (assuming you have AWS CLI already set up, and AWS CDK already bootstrapped). I recommend deploying to `us-east-1` to start with (since all the AI models are there).
-
+2. Deploy
 ```sh
 cdk deploy
 ```
-## Front End
+📝 Make sure AWS CDK is bootstrapped and your AWS CLI is authenticated. Region: us-east-1 is recommended for Bedrock model access.
+You will also get an AWS Lambda Function URL that lets you invoke your Lambda function directly (which is the function that handles the RAG logic in our case)
 
-### Install Tools to Generate API Client
+## 🌐 Front End
+
+### Install OpenAPI Generator
 
 ```sh
+cd rag-app-frontend
 npm install @openapitools/openapi-generator-cli -g
 ```
 
-There is a command script in the package.json file to generate the client library for the API.
-
+### Generate API Client
+Replace http://0.0.0.0:8000/ with an AWS Lambda Function URL in package.json 
 ```json
-{
+"scripts": {
   "generate-api-client": "openapi-generator-cli generate -i http://0.0.0.0:8000/openapi.json -g typescript-fetch -o src/api-client"
 }
 ```
 
-To use it, it will fetch the OpenAPI schema from `http://0.0.0.0:8000` (assuming it's a FastAPI server and makes it available). And generate a TypeScript client to `src/api-client`.
-
-We'll need to make sure it's generated each time.
-
 ### Generate API Client
 
-Generate the client into `src/api-client/` first.
+Then run:
 
 ```sh
 npm run generate-api-client
 ```
 
-### Component Library
+## 🧩 Component Library (UI)
 
-Using shadcn/ui. I don't think you need to run this, it's already part of the project via Git — but here's what I had to run, just for reference.
+Using shadcn/ui:
 
 ```sh
 npx shadcn-ui@latest init
@@ -159,3 +158,14 @@ npx shadcn-ui@latest add textarea
 npx shadcn@latest add card
 npx shadcn@latest add skeleton
 ```
+
+## Compile Typescript to js
+Once you're done with setting up the frontend, run:
+```sh
+npm run build
+```
+
+🙏 Acknowledgements
+Special thanks to [Pixegami](https://github.com/pixegami) for the clear tutorial on deploying RAG apps to AWS Lambda. This project’s deployment approach and architecture are deeply inspired by their video:
+📺 [Deploying RAG to AWS Lambda](https://www.youtube.com/watch?v=ldFONBo2CR0)
+
