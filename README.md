@@ -52,7 +52,7 @@ cd image/src
 python -m rag_app.query_rag "What was the total solar power output on 2019-10-01?"
 ```
 
-![Working RAG Application](images/rag_application.png)
+![Working RAG Application](images/src/rag_application.png)
 
 ## 🚀 Starting FastAPI Server (Local)
 # From image/src directory.
@@ -106,7 +106,7 @@ curl -X 'POST' \
 
 Deployment is inspired by Pixegami’s tutorial on deploying RAG apps to AWS. Highly recommended if you're new to AWS CDK or deploying containerised FastAPI apps to Lambda.
 
-![Backend AWS DynamoDB Query List](images/dynamodb.png)
+![Backend AWS DynamoDB Query List](images/src/dynamodb.png)
 
 *Figure: DynamoDB table storing user queries and AI-generated responses.*
 
@@ -125,7 +125,7 @@ You will also get an AWS Lambda Function URL that lets you invoke your Lambda fu
 
 ## 🌐 Front End
 
-![Frontend Application UI](images/working_frontend.png)
+![Frontend Application UI](images/src/working_frontend.png)
 
 This is the main UI where users can ask questions and get real-time solar forecasting responses.
 
